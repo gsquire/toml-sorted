@@ -1,31 +1,43 @@
 use std::error::Error;
-use std::{env, fmt, fs};
+use std::{env, fmt, fs, io, process};
 
-use toml::Value;
+use toml::{de, Value};
 
-type Res<T> = Result<T, Box<dyn Error>>;
-
-#[derive(Clone, Copy, Debug)]
+#[derive(Debug)]
 enum CommandErr {
     IncorrectArgs,
-    NotSorted,
+    TomlError(de::Error),
+    IoError(io::Error),
 }
 
 impl fmt::Display for CommandErr {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             CommandErr::IncorrectArgs => write!(f, "incorrect number of arguments supplied"),
-            CommandErr::NotSorted => write!(f, "manifest contents are not all sorted"),
+            CommandErr::TomlError(_) => write!(f, "could not parse manifest"),
+            CommandErr::IoError(_) => write!(f, "could not read manifest"),
         }
     }
 }
 
 impl Error for CommandErr {}
 
-fn parse_manifest() -> Res<Value> {
+impl From<de::Error> for CommandErr {
+    fn from(e: de::Error) -> Self {
+        CommandErr::TomlError(e)
+    }
+}
+
+impl From<io::Error> for CommandErr {
+    fn from(e: io::Error) -> Self {
+        CommandErr::IoError(e)
+    }
+}
+
+fn parse_manifest() -> Result<Value, CommandErr> {
     let args = env::args().collect::<Vec<String>>();
     if args.len() != 2 {
-        return Err(Box::new(CommandErr::IncorrectArgs));
+        return Err(CommandErr::IncorrectArgs);
     }
 
     let manifest = fs::read_to_string(&args[1])?;
@@ -73,11 +85,16 @@ fn is_sorted(manifest: &Value) -> bool {
         && check_deps_by_key(manifest, "dev-dependencies")
 }
 
-fn main() -> Res<()> {
-    let manifest = parse_manifest()?;
-    if !is_sorted(&manifest) {
-        return Err(Box::new(CommandErr::NotSorted));
+fn main() {
+    match parse_manifest() {
+        Ok(m) => {
+            if !is_sorted(&m) {
+                process::exit(1);
+            }
+        }
+        Err(e) => {
+            eprintln!("error: {}", e);
+            process::exit(1);
+        }
     }
-
-    Ok(())
 }
