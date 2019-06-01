@@ -70,9 +70,9 @@ fn check_deps_by_key(manifest: &Value, key: &str) -> bool {
         let values = v
             .as_table()
             .unwrap()
-            .values()
-            .map(|v| v.as_str().unwrap())
-            .collect::<Vec<&str>>();
+            .keys()
+            .map(|k| k.clone())
+            .collect::<Vec<String>>();
         return values.windows(2).all(|w| w[0] <= w[1]);
     }
     true
