@@ -1,0 +1,8 @@
+[package]
+name = "toml-sorted"
+version = "0.1.0"
+authors = ["Garrett Squire <garrettsquire@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+toml = "0.5"
