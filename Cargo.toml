@@ -3,6 +3,10 @@ name = "toml-sorted"
 version = "0.1.0"
 authors = ["Garrett Squire <garrettsquire@gmail.com>"]
 edition = "2018"
+license = "MIT"
+repository = "https://github.com/gsquire/toml-sorted"
+description = "A cargo sub-command to check if various parts of the manifest are sorted"
+readme = "README.md"
 
 [dependencies]
 toml = "0.5"
