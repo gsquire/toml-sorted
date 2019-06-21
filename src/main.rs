@@ -1,11 +1,12 @@
 use std::error::Error;
-use std::{env, fmt, fs, io, process};
+use std::path::PathBuf;
+use std::{fmt, fs, io, process};
 
+use structopt::StructOpt;
 use toml::{de, Value};
 
 #[derive(Debug)]
 enum CommandErr {
-    IncorrectArgs,
     TomlError(de::Error),
     IoError(io::Error),
 }
@@ -13,7 +14,6 @@ enum CommandErr {
 impl fmt::Display for CommandErr {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            CommandErr::IncorrectArgs => write!(f, "incorrect number of arguments supplied"),
             CommandErr::TomlError(_) => write!(f, "could not parse manifest"),
             CommandErr::IoError(_) => write!(f, "could not read manifest"),
         }
@@ -34,13 +34,15 @@ impl From<io::Error> for CommandErr {
     }
 }
 
-fn parse_manifest() -> Result<Value, CommandErr> {
-    let args = env::args().collect::<Vec<String>>();
-    if args.len() != 2 {
-        return Err(CommandErr::IncorrectArgs);
-    }
+#[derive(Debug, StructOpt)]
+#[structopt(name = "toml-sorted", about = "Check if Cargo.toml is sorted.")]
+struct Opt {
+    #[structopt(parse(from_os_str))]
+    manifest: PathBuf,
+}
 
-    let manifest = fs::read_to_string(&args[1])?;
+fn parse_manifest(options: &Opt) -> Result<Value, CommandErr> {
+    let manifest = fs::read_to_string(&options.manifest)?;
     let v = manifest.parse::<Value>()?;
     Ok(v)
 }
@@ -86,7 +88,8 @@ fn is_sorted(manifest: &Value) -> bool {
 }
 
 fn main() {
-    match parse_manifest() {
+    let opt = Opt::from_args();
+    match parse_manifest(&opt) {
         Ok(m) => {
             if !is_sorted(&m) {
                 process::exit(1);
