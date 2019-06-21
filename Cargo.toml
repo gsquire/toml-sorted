@@ -9,4 +9,5 @@ description = "A cargo sub-command to check if various parts of the manifest are
 readme = "README.md"
 
 [dependencies]
-toml = "0.5"
+structopt = "0.2"
+toml = { version = "0.5", features = ["preserve_order"] }
