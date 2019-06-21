@@ -1,0 +1,8 @@
+language: rust
+dist: xenial
+rust:
+    - stable
+    - nightly
+script:
+    - cargo build
+    - cargo test
