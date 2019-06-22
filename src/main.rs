@@ -48,36 +48,27 @@ fn parse_manifest(options: &Opt) -> Result<Value, CommandErr> {
 }
 
 fn check_workspace_by_key(workspace: &Value, key: &str) -> bool {
-    if let Some(v) = workspace.get(key) {
-        let values = v
-            .as_array()
-            .unwrap()
-            .into_iter()
+    workspace.get(key).map_or(true, |v| {
+        let arrays = v.as_array().unwrap();
+        let values = arrays
+            .iter()
             .map(|v| v.as_str().unwrap())
-            .collect::<Vec<&str>>();
-        return values.windows(2).all(|w| w[0] <= w[1]);
-    }
-    true
+            .collect::<Vec<_>>();
+        values.windows(2).all(|w| w[0] <= w[1])
+    })
 }
 
 fn check_workspace(manifest: &Value) -> bool {
-    if let Some(v) = manifest.get("workspace") {
-        return check_workspace_by_key(&v, "exclude") && check_workspace_by_key(&v, "members");
-    }
-    true
+    manifest.get("workspace").map_or(true, |v| {
+        check_workspace_by_key(&v, "exclude") && check_workspace_by_key(&v, "members")
+    })
 }
 
 fn check_deps_by_key(manifest: &Value, key: &str) -> bool {
-    if let Some(v) = manifest.get(key) {
-        let values = v
-            .as_table()
-            .unwrap()
-            .keys()
-            .map(|k| k.clone())
-            .collect::<Vec<String>>();
-        return values.windows(2).all(|w| w[0] <= w[1]);
-    }
-    true
+    manifest.get(key).map_or(true, |v| {
+        let values = v.as_table().unwrap().keys().collect::<Vec<_>>();
+        values.windows(2).all(|w| w[0] <= w[1])
+    })
 }
 
 fn is_sorted(manifest: &Value) -> bool {
