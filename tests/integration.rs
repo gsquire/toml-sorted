@@ -29,3 +29,10 @@ fn workspace_manifest() {
     cmd.arg("manifests/workspace.toml");
     cmd.assert().failure().code(1);
 }
+
+#[test]
+fn multiple_dependency_sections_manifest() {
+    let mut cmd = Command::cargo_bin("toml-sorted").unwrap();
+    cmd.arg("manifests/multiple_dependency_sections.toml");
+    cmd.assert().success();
+}
