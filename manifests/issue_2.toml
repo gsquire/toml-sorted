@@ -1,0 +1,7 @@
+[package]
+name = "testing"
+version = "0.0.0"
+
+[dependencies]
+b = "99"
+a = "99"

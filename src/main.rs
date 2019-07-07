@@ -34,6 +34,12 @@ impl From<io::Error> for CommandErr {
     }
 }
 
+// Represents a parsed manifest with a field maintaining the file contents.
+struct Manifest {
+    value: Value,
+    parsed_file: String,
+}
+
 #[derive(Debug, StructOpt)]
 #[structopt(name = "toml-sorted", about = "Check if Cargo.toml is sorted.")]
 struct Opt {
@@ -41,10 +47,13 @@ struct Opt {
     manifest: PathBuf,
 }
 
-fn parse_manifest(options: &Opt) -> Result<Value, CommandErr> {
+fn parse_manifest(options: &Opt) -> Result<Manifest, CommandErr> {
     let manifest = fs::read_to_string(&options.manifest)?;
     let v = manifest.parse::<Value>()?;
-    Ok(v)
+    Ok(Manifest {
+        value: v,
+        parsed_file: manifest,
+    })
 }
 
 fn check_workspace_by_key(workspace: &Value, key: &str) -> bool {
@@ -64,15 +73,28 @@ fn check_workspace(manifest: &Value) -> bool {
     })
 }
 
-fn check_deps_by_key(manifest: &Value, key: &str) -> bool {
-    manifest.get(key).map_or(true, |v| {
+fn check_deps_by_key(manifest: &Manifest, key: &str) -> bool {
+    manifest.value.get(key).map_or(true, |v| {
         let values = v.as_table().unwrap().keys().collect::<Vec<_>>();
-        values.windows(2).all(|w| w[0] <= w[1])
+        // Do another check to see if we have a special case of [key.value] inside of the file.
+        if !values.windows(2).all(|w| w[0] <= w[1]) {
+            let checks = values
+                .windows(2)
+                .filter(|w| w[1] < w[0])
+                .map(|w| w[1])
+                .collect::<Vec<_>>();
+            for c in checks {
+                if !manifest.parsed_file.contains(&format!("[{}.{}]", key, c)) {
+                    return false;
+                }
+            }
+        }
+        true
     })
 }
 
-fn is_sorted(manifest: &Value) -> bool {
-    check_workspace(manifest)
+fn is_sorted(manifest: &Manifest) -> bool {
+    check_workspace(&manifest.value)
         && check_deps_by_key(manifest, "build-dependencies")
         && check_deps_by_key(manifest, "dependencies")
         && check_deps_by_key(manifest, "dev-dependencies")
