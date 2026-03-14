@@ -1,6 +1,4 @@
-use std::process::Command;
-
-use assert_cmd::prelude::*;
+use assert_cmd::Command;
 
 #[test]
 fn issue_2_manifest() {
